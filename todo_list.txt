@@ -1,0 +1,51 @@
+To do:
+
+Add argparse
+	-Number of stacks
+	-Number of frames per stack
+	-Rotary stage velocity
+	-Beginning of file name
+	-Location of files
+	-Preview
+	-Number of cameras
+	-Time of test
+
+Find way to stop acquiring
+
+Find a way to check if the required packages are installed
+
+Flesh out functions more
+
+Look into how queue is saving
+
+Add rotary stage
+	-Ping for location
+	-Spool up
+	-Input some velocity
+
+Export fps to file
+
+Improve clock function
+
+Live Preview camera code
+
+Establish some test standard
+	-Time everything (relatively)
+	-Rotary stage location
+
+Run the test using:
+	-Matlab
+	-Python code
+	-MPM way
+
+Long term goal:
+	-Connect to multiple cameras
+		-Parallelization?
+	-Triggered option
+	-Some GUI for python?
+
+Future directions
+	-Image analysis
+
+Get powerpoint together
+	Line plot: relative time vs number of stacks
