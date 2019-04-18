@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 
-#Import things
+# Import all of the modules required
 import cv2 as cv
 import numpy as np
-import time
-import queue
+import argparse
 
 # Define the routines that will be done
+def parseArgs():
+    parser = argparse.ArgumentParser(description='Interface with a USB camera via OpenCV')
 
+    # Positional input arguments
+
+    # Optional input arguments
+
+
+
+# Initialize the camera
 def initialize_camera(cameraNumber,width,height):
     camera = cv.VideoCapture(cameraNumber);
     camera.set(3,width); # Width
@@ -15,41 +23,36 @@ def initialize_camera(cameraNumber,width,height):
     return camera
 #end
 
+# Take frame(s)
 def take_frame(camera,frameQueue):
     start = time.time();
     while not frameQueue.full():
         [ret,frame] = camera.read();
-        #if ret == 1:
         frameQueue.put_nowait(frame);
-            #print(str(time.time()));
-            #print('Frame successfully taken');
-        #else:
-            #print('Frame not successfully taken');
-        #end
-    #end
     end = time.time()
     return (numberOfFrames/(end-start));
-    #print('Calculated frame rate: %f' %(numberOfFrames/(end-start)))
 #end
 
+# Process frame(s)
 def process_frame(frameQueue,stackCounter):
     start = time.time();
     counter = 0;
-    #for i in range(numberOfFrames):
     while not frameQueue.empty():
         frame = frameQueue.get_nowait();
         ret = cv.imwrite('Images\Stack_%i_%i.tiff' % (counter,stackCounter),frame[:,:,1]);
         counter = counter+1;
-        #end
-    #end
     end = time.time();
     return (end-start)
 #end
 
 
+def main():
+    # Collect input arguments
+
 # Int main
 if __name__ == '__main__':
-
+    main();
+'''
     # Initialize camera and camera resources
     width = 2464;
     height = 2056;
@@ -76,3 +79,4 @@ if __name__ == '__main__':
 
 
 #end
+'''
