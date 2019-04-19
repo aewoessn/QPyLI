@@ -4,19 +4,19 @@ Add argparse
 	-Number of stacks AW
 	-Number of frames per stack AW
 	-Rotary stage velocity
-	-Beginning of file name
-	-Location of files
+	-Beginning of file name AW
+	-Location of files AW
 	-Preview
 	-Number of cameras AW
 	-Time of test
 
 Find way to stop acquiring
 
-Find a way to check if the required packages are installed
+Find a way to check if the required packages are installed AW
 
-Flesh out functions more
+Flesh out functions more AW
 
-Look into how queue is saving
+Look into how queue is saving AW
 
 Add rotary stage
 	-Ping for location
