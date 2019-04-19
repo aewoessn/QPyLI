@@ -5,21 +5,25 @@ import cv2 as cv
 import numpy as np
 import argparse
 
-# Define the routines that will be done
-def parseArgs():
-    parser = argparse.ArgumentParser(description='Interface with a USB camera via OpenCV')
+# Define the function that will be ran
+def getArgs():
+    parser = argparse.ArgumentParser(description='Interface with a USB camera via OpenCV');
 
     # Positional input arguments
+    #parser.add_argument('startCam',type=int,help='Start index for connecting to cameras (if unsure, set to 1)');
+    #parser.add_argument('endCam',type=int,help='End index for connecting to cameras (if unsure, set to 1)');
+    parser.add_argument('cameraIndex',type=int,help='Index of the camera to connect (starts at 0)');
+    parser.add_argument('framesPerStack',type=int,help='Number of frames to burst acquire');
+    parser.add_argument('numberOfStacks',type=int,help='Number of stacks to acquire (0 indicates Inf)');
 
     # Optional input arguments
 
+    return(parser.parse_args());
 
 
 # Initialize the camera
-def initialize_camera(cameraNumber,width,height):
+def initializeCamera(cameraNumber):
     camera = cv.VideoCapture(cameraNumber);
-    camera.set(3,width); # Width
-    camera.set(4,height); # Height
     return camera
 #end
 
@@ -48,6 +52,15 @@ def process_frame(frameQueue,stackCounter):
 
 def main():
     # Collect input arguments
+    args = getArgs();
+
+    # Initialize the camera, and verify that all objects are linked to an actual camera
+    camera = initializeCamera(args.cameraIndex);
+
+    if camera.isOpened():
+        print('Successfully connected to camera:' + str(args.cameraIndex));
+    else:
+        print('Could not connect to camera:' + str(args.cameraIndex));
 
 # Int main
 if __name__ == '__main__':

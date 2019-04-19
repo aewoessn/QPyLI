@@ -1,13 +1,13 @@
 To do:
 
 Add argparse
-	-Number of stacks
-	-Number of frames per stack
+	-Number of stacks AW
+	-Number of frames per stack AW
 	-Rotary stage velocity
 	-Beginning of file name
 	-Location of files
 	-Preview
-	-Number of cameras
+	-Number of cameras AW
 	-Time of test
 
 Find way to stop acquiring
