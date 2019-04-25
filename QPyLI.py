@@ -7,8 +7,8 @@ import cv2 as cv
 import numpy as np
 import zaber.serial as zs
 import imageio
-import matplotlib.pyplot as plt
 import time
+import csv
 
 # Define the function that will be ran
 def getArgs():
@@ -21,7 +21,7 @@ def getArgs():
     parser.add_argument('framesPerStack',type=int,help='Number of frames to burst acquire');
     parser.add_argument('numberOfStacks',type=int,help='Number of stacks to acquire (0 indicates Inf, Cntrl+C to stop)');
     collect = parser.add_mutually_exclusive_group();
-    collect.add_argument('-c','--continuous',help='Continuous collection');
+    collect.add_argument('-c','--continuous',action = 'store_true',help='Continuous collection');
     collect.add_argument('-i','--finite',action='store_true',help='Finite collection');
     # Optional input arguments
 
@@ -33,7 +33,7 @@ def getArgs():
     camera.add_argument('-f','--fps',type=int,help='Frames per second of camera (may not be accurate)');
     camera.add_argument('-a','--gamma',type=int,help='Gamma value for camera');
     camera.add_argument('-x','--exposure',type=int,help='Exposure value for camera (-16 is minimum))');
-    camera.add_argument('-d','--dir',help='Directory to save images to (Defualt is current directory)');
+    camera.add_argument('-d','--dir',help='Directory to save images to (Default is current directory)');
 
     # Rotary stage controls
     rotary = parser.add_argument_group('Rotary Stage Controls');
@@ -59,6 +59,8 @@ def initializeRotaryStage(args):
 
     device = zs.AsciiDevice(port,1);
 
+    # Spped up the rotary stage a bit
+    reply = device.send('set limit.approach.maxspeed 50000');
     return device
 #end
 
@@ -167,61 +169,80 @@ def main():
     # Change settings of camera if needed
     camera = changeSettings(camera,args);
 
+    start = time.time();
+
     if args.finite:
         # Finite collection
 
         # Initialize the rotary stage (if requested)
         if args.zaber:
             device = initializeRotaryStage(args);
+            positionUnitScale = 2.777777777777778;
+            resolution = int(device.send('get resolution').data);
 
         # Establish a matrix to fill images with
         imageMatrix = np.zeros((int(camera.get(4)),int(camera.get(3)),args.framesPerStack),dtype = 'uint8');
+        position = [];
+        clockTime = [];
 
         # Find the amount that the rotary stage has to move in-between images
         degreeDelt = 180/args.framesPerStack;
 
         # Fill initial matrix with images
         for i in range(args.framesPerStack-1):
-            # Move rotary stage
-            if args.zaber:
-                translateRotaryStage(device,degreeDelt);
-
             # Acquire image
+            clockTime.append(time.time());
+
             [ret,tmp] = camera.read();
+            print(i)
             imageMatrix[:,:,i] = tmp[:,:,1];
 
-        plt.figure();
+            if args.zaber:
+                # Get position of rotary stage
+                position.append((int(device.send('get encoder.pos').data)/resolution/positionUnitScale) % 360);
+
+                # Move the rotary stage
+                translateRotaryStage(device,degreeDelt);
+
+        cv.imshow('Original',imageMatrix[:,:,args.framesPerStack-1]);
+        cv.waitKey(1)
 
         if args.numberOfStacks == 0:
-            # Continue to take frames until Control+C (KeyboardInterrupt) is pressed
+            # Continue to take frames until q is pressed
             counter = 0;
-            try:
-                while True:
-                    # Acquire a new frame
-                    [ret,tmp] = camera.read();
-                    imageMatrix[:,:,args.framesPerStack-1] = tmp[:,:,1];
+            while True:
+                clockTime.append(time.time());
+                # Acquire a new frame
+                [ret,tmp] = camera.read();
+                imageMatrix[:,:,args.framesPerStack-1] = tmp[:,:,1];
 
-                    # Save the image set
-                    processFrameSlow(imageMatrix,counter,args.framesPerStack,args);
+                # Save the image set
+                processFrameSlow(imageMatrix,counter,args.framesPerStack,args);
 
-                    # Move rotary stage
-                    if args.zaber:
-                        translateRotaryStage(device,degreeDelt);
+                if args.zaber:
+                    # Get position of rotary stage
+                    position.append((int(device.send('get encoder.pos').data)/resolution/positionUnitScale) % 360);
 
-                    # Shift the dataset such that the first image is not the last image, that way it can be overwritten
-                    imageMatrix = np.roll(imageMatrix,-1,axis=2);
+                    # Move the rotary stage
+                    translateRotaryStage(device,degreeDelt);
 
-                    counter = counter+1;
+                # Shift the dataset such that the first image is not the last image, that way it can be overwritten
+                imageMatrix = np.roll(imageMatrix,-1,axis=2);
 
-                    plt.imshow(np.mean(imageMatrix,axis=2),cmap='gray');
-                    plt.draw();
-                    plt.pause(0.1);
-            except KeyboardInterrupt:
+                counter = counter+1;
+
+                cv.imshow('Original',imageMatrix[:,:,args.framesPerStack-1]);
+
+
+                if cv.waitKey(1) & 0xFF == ord('q'):
+                    break
+
                 print(str(counter) + ' stack(s) acquired and saved');
 
         else:
             # Acquire a certain number of frames
             for i in range(args.numberOfStacks):
+                clockTime.append(time.time());
                 # Acquire a new frame
                 [ret,tmp] = camera.read();
                 imageMatrix[:,:,args.framesPerStack-1] = tmp[:,:,1];
@@ -229,16 +250,20 @@ def main():
                 # Save the image set
                 processFrameSlow(imageMatrix,i,args.framesPerStack,args);
 
+
                 # Move rotary stage
                 if args.zaber:
+                    # Get position of rotary stage
+                    position.append((int(device.send('get encoder.pos').data)/resolution/positionUnitScale) % 360);
+
+                    # Move the rotary stage
                     translateRotaryStage(device,degreeDelt);
 
                 # Shift the dataset such that the first image is not the last image, that way it can be overwritten
                 imageMatrix = np.roll(imageMatrix,-1,axis=2);
 
-                plt.imshow(np.mean(imageMatrix,axis=2),cmap='gray');
-                plt.draw();
-                plt.pause(0.1);
+                cv.imshow('Original',imageMatrix[:,:,args.framesPerStack-1]);
+                cv.waitKey(1);
 
             print(str(args.numberOfStacks) + ' stacks(s) acquired and saved');
     else:
@@ -282,7 +307,25 @@ def main():
     if args.zaber:
         device.stop();
     camera.release();
+    cv.destroyAllWindows();
 
+    # Print out the time and position
+    if args.dir:
+        with open(args.dir + 'time.csv','w') as timeFile:
+            csvObject = csv.writer(timeFile,delimiter=',');
+            csvObject.writerow(clockTime);
+
+        with open(args.dir + 'position.csv','w') as posFile:
+            csvObject = csv.writer(posFile,delimiter=',');
+            csvObject.writerow(position);
+    else:
+        with open('time.csv','w') as timeFile:
+            csvObject = csv.writer(timeFile,delimiter=',');
+            csvObject.writerow(clockTime);
+
+        with open('position.csv','w') as posFile:
+            csvObject = csv.writer(posFile,delimiter=',');
+            csvObject.writerow(position);
 # Int main
 if __name__ == '__main__':
     main();
